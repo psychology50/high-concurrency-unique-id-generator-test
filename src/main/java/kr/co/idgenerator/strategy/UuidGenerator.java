@@ -1,4 +1,4 @@
-package kr.co.idgenerator.generator;
+package kr.co.idgenerator.strategy;
 
 import java.util.UUID;
 

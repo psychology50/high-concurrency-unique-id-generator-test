@@ -1,4 +1,4 @@
-package kr.co.idgenerator.generator;
+package kr.co.idgenerator.strategy;
 
 import com.github.f4b6a3.ksuid.KsuidCreator;
 

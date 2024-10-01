@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'kr.co'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.github.f4b6a3:uuid-creator:6.0.0' // UUID
+    implementation 'com.github.f4b6a3:ulid-creator:5.2.3' // ULID
+    implementation 'com.github.f4b6a3:tsid-creator:5.2.6' // TSID
+    implementation 'com.github.f4b6a3:ksuid-creator:4.1.1' // KSUID
+    // Twitter Snowflake
+    // FlakeId
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}

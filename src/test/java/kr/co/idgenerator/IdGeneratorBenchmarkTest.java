@@ -9,10 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class IdGeneratorBenchmarkTest {
@@ -99,17 +96,32 @@ public class IdGeneratorBenchmarkTest {
         results.computeIfAbsent(generatorName, k -> new ArrayList<>()).add(result);
     }
 
+    // ID 생성 시간 측정
     private <E> long testGenerationTime(IdGenerator<E> generator, int sampleSize) throws Exception {
         long start = System.nanoTime();
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+        CountDownLatch latch = new CountDownLatch(sampleSize);
+
         for (int i = 0; i < sampleSize; i++) {
-            executor.submit(generator::execute);
+            executor.submit(() -> {
+                try {
+                    generator.execute();
+                } finally {
+                    latch.countDown();
+                }
+            });
         }
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
-        return (System.nanoTime() - start) / 1_000_000; // Convert to milliseconds
+
+        try {
+            latch.await(); // 모든 작업이 완료될 때까지 대기
+        } finally {
+            executor.shutdown();
+        }
+
+        return (System.nanoTime() - start) / 1_000_000; // 밀리 초로 변환
     }
 
+    // ID 정렬 가능 여부 테스트
     private <E extends Comparable<? super E>> boolean testSortability(IdGenerator<E> generator, int sampleSize) {
         List<E> ids = new ArrayList<>();
         for (int i = 0; i < sampleSize; i++) {
@@ -120,17 +132,32 @@ public class IdGeneratorBenchmarkTest {
         return ids.equals(sortedIds);
     }
 
+    // ID 충돌율 테스트
     private <E> double testCollisionRate(IdGenerator<E> generator, int sampleSize) throws Exception {
         Set<E> uniqueIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+        CountDownLatch latch = new CountDownLatch(sampleSize);
+
         for (int i = 0; i < sampleSize; i++) {
-            executor.submit(() -> uniqueIds.add(generator.execute()));
+            executor.submit(() -> {
+                try {
+                    uniqueIds.add(generator.execute());
+                } finally {
+                    latch.countDown();
+                }
+            });
         }
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
+
+        try {
+            latch.await(); // 모든 작업이 완료될 때까지 대기
+        } finally {
+            executor.shutdown();
+        }
+
         return 1 - ((double) uniqueIds.size() / sampleSize);
     }
 
+    // DB 조인 성능 테스트
     private <E> long testDbJoinPerformance(IdGenerator<E> generator, String generatorName, int sampleSize) throws SQLException {
         PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + generatorName + "_table (id) VALUES (?)");
         for (int i = 0; i < sampleSize; i++) {
@@ -148,9 +175,9 @@ public class IdGeneratorBenchmarkTest {
         long start = System.nanoTime();
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT * FROM " + generatorName + "_table a JOIN " + generatorName + "_table b ON a.id = b.id");
-        while (rs.next()) { // Just iterate through the results
+        while (rs.next()) { // 결과 집합 반복하면서 모든 행 소비
         }
-        return (System.nanoTime() - start) / 1_000_000; // Convert to milliseconds
+        return (System.nanoTime() - start) / 1_000_000; // 밀리 초로 변환
     }
 
     private static void createTables() throws SQLException {

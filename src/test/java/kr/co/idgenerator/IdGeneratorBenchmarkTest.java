@@ -1,9 +1,6 @@
 package kr.co.idgenerator;
 
-import kr.co.idgenerator.strategy.IdGenerator;
-import kr.co.idgenerator.strategy.KsuidGenerator;
-import kr.co.idgenerator.strategy.TsidGenerator;
-import kr.co.idgenerator.strategy.UuidGenerator;
+import kr.co.idgenerator.strategy.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
@@ -44,6 +41,20 @@ public class IdGeneratorBenchmarkTest {
         runBenchmark(generator, "UUID", sampleSize);
     }
 
+    @ParameterizedTest(name = "TimeOrderedUUID")
+    @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
+    public void evaluateTimeOrderedUUID(int sampleSize) throws Exception {
+        IdGenerator<String> generator = new TimeOrderedUuidGenerator();
+        runBenchmark(generator, "TimeOrderedUUID", sampleSize);
+    }
+
+    @ParameterizedTest(name = "TimeOrderedEpochUUID")
+    @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
+    public void evaluateTimeOrderedEpocUUID(int sampleSize) throws Exception {
+        IdGenerator<String> generator = new TimeOrderedEpochUuidGenerator();
+        runBenchmark(generator, "TimeOrderedEpochUUID", sampleSize);
+    }
+
     @ParameterizedTest(name = "KSUID")
     @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
     public void evaluateKSUID(int sampleSize) throws Exception {
@@ -58,13 +69,34 @@ public class IdGeneratorBenchmarkTest {
         runBenchmark(generator, "ULID", sampleSize);
     }
 
-    private <E extends Comparable<? super E>> void runBenchmark(IdGenerator<E> generator, String idType, int sampleSize) throws Exception {
-        BenchmarkResult result = new BenchmarkResult(idType, sampleSize);
+    @ParameterizedTest(name = "TSID")
+    @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
+    public void evaluateTSID(int sampleSize) throws Exception {
+        IdGenerator<String> generator = new TsidGenerator();
+        runBenchmark(generator, "TSID", sampleSize);
+    }
+
+    @ParameterizedTest(name = "TSIDLong")
+    @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
+    public void evaluateTSIDLong(int sampleSize) throws Exception {
+        IdGenerator<Long> generator = new TsidLongGenerator();
+        runBenchmark(generator, "TSIDLong", sampleSize);
+    }
+
+    private <E extends Comparable<? super E>> void runBenchmark(IdGenerator<E> generator, String generatorName, int sampleSize) throws Exception {
+        BenchmarkResult result = new BenchmarkResult(generatorName, sampleSize);
         result.setGenerationTime(testGenerationTime(generator, sampleSize));
         result.setSortable(testSortability(generator, sampleSize));
         result.setCollisionRate(testCollisionRate(generator, sampleSize));
-        result.setDbJoinTime(testDbJoinPerformance(generator, idType, sampleSize));
-        results.computeIfAbsent(idType, k -> new ArrayList<>()).add(result);
+        result.setDbJoinTime(testDbJoinPerformance(generator, generatorName, sampleSize));
+
+        // ID의 byte 크기 계산
+        E sampleId = generator.execute();
+        String exampleId = sampleId.toString();
+        result.setExampleId(exampleId);
+        result.setByteSize(exampleId.getBytes().length);
+
+        results.computeIfAbsent(generatorName, k -> new ArrayList<>()).add(result);
     }
 
     private <E> long testGenerationTime(IdGenerator<E> generator, int sampleSize) throws Exception {
@@ -99,8 +131,8 @@ public class IdGeneratorBenchmarkTest {
         return 1 - ((double) uniqueIds.size() / sampleSize);
     }
 
-    private <E> long testDbJoinPerformance(IdGenerator<E> generator, String idType, int sampleSize) throws SQLException {
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + idType + "_table (id) VALUES (?)");
+    private <E> long testDbJoinPerformance(IdGenerator<E> generator, String generatorName, int sampleSize) throws SQLException {
+        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + generatorName + "_table (id) VALUES (?)");
         for (int i = 0; i < sampleSize; i++) {
             E id = generator.execute();
 
@@ -115,7 +147,7 @@ public class IdGeneratorBenchmarkTest {
 
         long start = System.nanoTime();
         Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM " + idType + "_table a JOIN " + idType + "_table b ON a.id = b.id");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + generatorName + "_table a JOIN " + generatorName + "_table b ON a.id = b.id");
         while (rs.next()) { // Just iterate through the results
         }
         return (System.nanoTime() - start) / 1_000_000; // Convert to milliseconds
@@ -124,14 +156,22 @@ public class IdGeneratorBenchmarkTest {
     private static void createTables() throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute("CREATE TABLE UUID_TABLE (id VARCHAR(256) PRIMARY KEY)");
+        stmt.execute("CREATE TABLE TIMEORDEREDUUID_TABLE (id VARCHAR(256) PRIMARY KEY)");
+        stmt.execute("CREATE TABLE TIMEORDEREDEPOCHUUID_TABLE (id VARCHAR(256) PRIMARY KEY)");
         stmt.execute("CREATE TABLE ULID_TABLE (id VARCHAR(256) PRIMARY KEY)");
         stmt.execute("CREATE TABLE KSUID_TABLE (id VARCHAR(256) PRIMARY KEY)");
+        stmt.execute("CREATE TABLE TSID_TABLE (id VARCHAR(256) PRIMARY KEY)");
+        stmt.execute("CREATE TABLE TSIDLONG_TABLE (id BIGINT PRIMARY KEY)");
     }
 
     private static void dropTables() throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute("DROP TABLE UUID_TABLE");
+        stmt.execute("DROP TABLE TIMEORDEREDUUID_TABLE");
+        stmt.execute("DROP TABLE TIMEORDEREDEPOCHUUID_TABLE");
         stmt.execute("DROP TABLE ULID_TABLE");
         stmt.execute("DROP TABLE KSUID_TABLE");
+        stmt.execute("DROP TABLE TSID_TABLE");
+        stmt.execute("DROP TABLE TSIDLONG_TABLE");
     }
 }

@@ -3,10 +3,12 @@ package kr.co.idgenerator;
 public class BenchmarkResult {
     private String generatorName;
     private int sampleSize;
+    private int byteSize;
     private long generationTime;
     private boolean sortable;
     private double collisionRate;
     private long dbJoinTime;
+    private String exampleId;
 
     BenchmarkResult(String generatorName, int sampleSize) {
         this.generatorName = generatorName;
@@ -20,6 +22,15 @@ public class BenchmarkResult {
     public int getSampleSize() {
         return sampleSize;
     }
+
+    public int getByteSize() {
+        return byteSize;
+    }
+
+    public void setByteSize(int byteSize) {
+        this.byteSize = byteSize;
+    }
+
 
     public long getGenerationTime() {
         return generationTime;
@@ -51,5 +62,13 @@ public class BenchmarkResult {
 
     public void setDbJoinTime(long dbJoinTime) {
         this.dbJoinTime = dbJoinTime;
+    }
+
+    public String getExampleId() {
+        return exampleId;
+    }
+
+    public void setExampleId(String exampleId) {
+        this.exampleId = exampleId;
     }
 }

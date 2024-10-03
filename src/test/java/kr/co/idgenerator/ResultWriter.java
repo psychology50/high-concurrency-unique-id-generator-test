@@ -43,6 +43,8 @@ public class ResultWriter {
         headerRow.createCell(3).setCellValue("Sortable");
         headerRow.createCell(4).setCellValue("Collision Rate");
         headerRow.createCell(5).setCellValue("DB Join Time (ms)");
+        headerRow.createCell(6).setCellValue("Byte Size");
+        headerRow.createCell(7).setCellValue("Example ID");
 
         int rowNum = 1;
         for (Map.Entry<String, List<BenchmarkResult>> entry : results.entrySet()) {
@@ -54,6 +56,8 @@ public class ResultWriter {
                 row.createCell(3).setCellValue(result.isSortable());
                 row.createCell(4).setCellValue(result.getCollisionRate());
                 row.createCell(5).setCellValue(result.getDbJoinTime());
+                row.createCell(6).setCellValue(result.getByteSize());
+                row.createCell(7).setCellValue(result.getExampleId());
             }
         }
         System.out.println("Data written successfully.");
@@ -78,10 +82,18 @@ public class ResultWriter {
 
         XDDFChartData.Series uuidSeries = data.addSeries(getXDDFDataSource(sheet, "UUID"), getYDDFDataSource(sheet, "UUID", dataColumn));
         uuidSeries.setTitle("UUID", null);
+        XDDFChartData.Series timeOrderedUuidSeries = data.addSeries(getXDDFDataSource(sheet, "TimeOrderedUUID"), getYDDFDataSource(sheet, "TimeOrderedUUID", dataColumn));
+        timeOrderedUuidSeries.setTitle("TimeOrderedUUID", null);
+        XDDFChartData.Series timeOrderedEpocUuidSeries = data.addSeries(getXDDFDataSource(sheet, "TimeOrderedEpochUUID"), getYDDFDataSource(sheet, "TimeOrderedEpochUUID", dataColumn));
+        timeOrderedEpocUuidSeries.setTitle("TimeOrderedEpochUUID", null);
         XDDFChartData.Series ulidSeries = data.addSeries(getXDDFDataSource(sheet, "ULID"), getYDDFDataSource(sheet, "ULID", dataColumn));
         ulidSeries.setTitle("ULID", null);
         XDDFChartData.Series ksuidSeries = data.addSeries(getXDDFDataSource(sheet, "KSUID"), getYDDFDataSource(sheet, "KSUID", dataColumn));
         ksuidSeries.setTitle("KSUID", null);
+        XDDFChartData.Series tsidSeries = data.addSeries(getXDDFDataSource(sheet, "TSID"), getYDDFDataSource(sheet, "TSID", dataColumn));
+        tsidSeries.setTitle("TSID", null);
+        XDDFChartData.Series tsidLongSeries = data.addSeries(getXDDFDataSource(sheet, "TSIDLong"), getYDDFDataSource(sheet, "TSIDLong", dataColumn));
+        tsidLongSeries.setTitle("TSIDLong", null);
 
         chart.plot(data);
 

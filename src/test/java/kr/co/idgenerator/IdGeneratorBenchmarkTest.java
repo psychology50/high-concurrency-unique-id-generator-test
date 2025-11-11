@@ -62,7 +62,7 @@ public class IdGeneratorBenchmarkTest {
     @ParameterizedTest(name = "ULID")
     @ValueSource(ints = {256, 512, 1_024, 4_096, 8_192, 100_000, 300_000, 500_000})
     public void evaluateULID(int sampleSize) throws Exception {
-        IdGenerator<String> generator = new TsidGenerator();
+        IdGenerator<String> generator = new UlidGenerator();
         runBenchmark(generator, "ULID", sampleSize);
     }
 
